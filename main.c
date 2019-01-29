@@ -1,102 +1,120 @@
+#include <stdlib.h>
+#include <ctype.h>
 #include <ncurses.h>
 
-typedef struct _win_border_struct {
-	chtype 	ls, rs, ts, bs, 
-	tl, tr, bl, br;
-} WIN_BORDER;
 
-typedef struct _WIN_struct {
+char * intprtkey(int ch);
 
-	int startx, starty;
-	int height, width;
-	WIN_BORDER border;
-} WIN;
 
-void init_win_params(WIN *p_win);
-void print_win_params(WIN *p_win);
-void create_box(WIN *win, bool flag);
+int main(void) {
 
-int main(int argc, char *argv[])
-{	WIN win;
-	int ch;
+    WINDOW * mainwin;
+    int ch;
 
-	initscr();			/* Start curses mode 		*/
-	start_color();			/* Start the color functionality */
-	cbreak();			/* Line buffering disabled, Pass on
-					 * everty thing to me 		*/
-	keypad(stdscr, TRUE);		/* I need that nifty F1 	*/
-	noecho();
-	init_pair(1, COLOR_CYAN, COLOR_BLACK);
 
-	/* Initialize the window parameters */
-	init_win_params(&win);
-	print_win_params(&win);
+    /*  Initialize ncurses  */
 
-	attron(COLOR_PAIR(1));
-	printw("Press F1 to exit");
+    if ( (mainwin = initscr()) == NULL ) {
+	fprintf(stderr, "Error initializing ncurses.\n");
+	exit(EXIT_FAILURE);
+    }
+
+    noecho();                  /*  Turn off key echoing                 */
+    keypad(mainwin, TRUE);     /*  Enable the keypad for non-char keys  */
+
+
+    /*  Print a prompt and refresh() the screen  */
+
+    mvaddstr(5, 10, "Press a key ('q' to quit)...");
+    mvprintw(7, 10, "You pressed: ");
+    refresh();
+
+
+    /*  Loop until user presses 'q'  */
+
+    while ( (ch = getch()) != 'q' ) {
+
+	/*  Delete the old response line, and print a new one  */
+
+	deleteln();
+	mvprintw(7, 10, "You pressed: 0x%x (%s)", ch, intprtkey(ch));
 	refresh();
-	attroff(COLOR_PAIR(1));
+    }
+
+
+    /*  Clean up after ourselves  */
+
+    delwin(mainwin);
+    endwin();
+    refresh();
+
+    return EXIT_SUCCESS;
+}
+
+
+/*  Struct to hold keycode/keyname information  */
+
+struct keydesc {
+    int  code;
+    char name[20];
+};
+
+
+/*  Returns a string describing a character passed to it  */
+
+char * intprtkey(int ch) {
+
+    /*  Define a selection of keys we will handle  */
+
+    static struct keydesc keys[] = { { KEY_UP,        "Up arrow"        },
+				     { KEY_DOWN,      "Down arrow"      },
+				     { KEY_LEFT,      "Left arrow"      },
+				     { KEY_RIGHT,     "Right arrow"     },
+				     { KEY_HOME,      "Home"            },
+				     { KEY_END,       "End"             },
+				     { KEY_BACKSPACE, "Backspace"       },
+				     { KEY_IC,        "Insert"          },
+				     { KEY_DC,        "Delete"          },
+				     { KEY_NPAGE,     "Page down"       },
+				     { KEY_PPAGE,     "Page up"         },
+				     { KEY_F(1),      "Function key 1"  },
+				     { KEY_F(2),      "Function key 2"  },
+				     { KEY_F(3),      "Function key 3"  },
+				     { KEY_F(4),      "Function key 4"  },
+				     { KEY_F(5),      "Function key 5"  },
+				     { KEY_F(6),      "Function key 6"  },
+				     { KEY_F(7),      "Function key 7"  },
+				     { KEY_F(8),      "Function key 8"  },
+				     { KEY_F(9),      "Function key 9"  },
+				     { KEY_F(10),     "Function key 10" },
+				     { KEY_F(11),     "Function key 11" },
+				     { KEY_F(12),     "Function key 12" },
+				     { -1,            "<unsupported>"   }
+    };
+    static char keych[2] = {0};
+    
+    if ( isprint(ch) && !(ch & KEY_CODE_YES)) {
+
+	/*  If a printable character  */
+
+	keych[0] = ch;
+	return keych;
+    }
+    else {
+
+	/*  Non-printable, so loop through our array of structs  */
+
+	int n = 0;
 	
-	create_box(&win, TRUE);
-	while((ch = getch()) != KEY_F(1))
-	{
-		create_box(&win, TRUE);
-	}
-	endwin();			/* End curses mode		  */
-	return 0;
-}
-void init_win_params(WIN *p_win)
-{
-	p_win->height = 10;
-	p_win->width = 50;
-	p_win->starty = (LINES - p_win->height)/2;	
-	p_win->startx = (COLS - p_win->width)/2;
+	do {
+	    if ( keys[n].code == ch )
+		return keys[n].name;
+	    n++;
+	} while ( keys[n].code != -1 );
 
-	p_win->border.ls = '#';
-	p_win->border.rs = '#';
-	p_win->border.ts = '#';
-	p_win->border.bs = '#';
-	p_win->border.tl = '#';
-	p_win->border.tr = '#';
-	p_win->border.bl = '#';
-	p_win->border.br = '#';
-
+	return keys[n].name;
+    }    
+    
+    return NULL;        /*  We shouldn't get here  */
 }
 
-void print_win_params(WIN *p_win)
-{
-#ifdef _DEBUG
-	mvprintw(25, 0, "%d %d %d %d", p_win->startx, p_win->starty, 
-				p_win->width, p_win->height);
-	refresh();
-#endif
-}
-
-void create_box(WIN *p_win, bool flag)
-{	int i, j;
-	int x, y, w, h;
-
-	x = p_win->startx;
-	y = p_win->starty;
-	w = p_win->width;
-	h = p_win->height;
-
-	if(flag == TRUE)
-	{	mvaddch(y, x, p_win->border.tl);
-		mvaddch(y, x + w, p_win->border.tr);
-		mvaddch(y + h, x, p_win->border.bl);
-		mvaddch(y + h, x + w, p_win->border.br);
-		mvhline(y, x + 1, p_win->border.ts, w - 1);
-		mvhline(y + h, x + 1, p_win->border.bs, w - 1);
-		mvvline(y + 1, x, p_win->border.ls, h - 1);
-		mvvline(y + 1, x + w, p_win->border.rs, h - 1);
-
-	}
-	else
-		for(j = y; j <= y + h; ++j)
-			for(i = x; i <= x + w; ++i)
-				mvaddch(j, i, ' ');
-				
-	refresh();
-
-}
