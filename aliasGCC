@@ -1,0 +1,18 @@
+################ Development section ########################################## 
+
+# Run project
+alias run='run(){ ./"$1"; unset -f run; }; run'
+
+# -------------- C Specific ---------------------------------------
+# Build and run C project
+alias bnr='bnr(){ gcc "$1" -o "$2" && ./"$2"; unset -f bnr; }; bnr'
+
+# Build C project
+alias b='b(){ gcc "$1" -o "$2"; unset -f b; }; b'
+
+# -------------- Ncurses Specific --------------------------------
+# Build and run Ncurses project
+alias ncbnr='ncbnr(){ gcc -lncurses "$1" -o "$2" && ./"$2"; unset -f ncbnr; }; ncbnr'
+
+# Build Ncurses project
+alias ncb='ncb(){ gcc -lncurses "$1" -o "$2"; unset -f ncb; }; ncb'
