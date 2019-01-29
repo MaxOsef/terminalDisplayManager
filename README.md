@@ -1,5 +1,11 @@
 # terminalDisplayManager
 
+## Compilation
+Compilation need to be done like this:
+`gcc -lncurses -o tdm main.c`
+
+Then execute with:
+`./tdm`
 
 ## Some Example of console display manager
 
