@@ -5,158 +5,147 @@
 #include <form.h>
 
 #define APP "STDM"
-#define N_FIELDS 4
-#define HEIGHT 20
-#define WIDTH 76
+#define VERSION "v0.0.1"
+#define N_FIELDS 7
+#define HEIGHT 10
+#define WIDTH 60
 
-WINDOW *create_newwin(int height, int width, int starty, int startx);
-char * intprtkey(int ch);
-// void destroy_win(WINDOW *local_win);
+static FORM *form;
+static FIELD *fields[N_FIELDS];
+static WINDOW *win_body, *win_form;
 
-int main(void) {
+static void driver(int ch);
 
-    FIELD * field[N_FIELDS];
-    FORM * loginform;
-    WINDOW * initwin;
-    WINDOW * mainwin;
-	int startx, starty;
-    int ch, rows, cols;
+int main(void)
+{
+    int ch, starty, startx;
 	
     /*  Initialize ncurses  */
-    initwin = initscr();
+    initscr();
     
-    if ( initwin == NULL ) {
-	    fprintf(stderr, "Error initializing ncurses.\n");
-	    exit(EXIT_FAILURE);
-    }
-
     noecho();                  /*  Turn off key echoing                 */
     cbreak();
-	keypad(stdscr, TRUE);     /*  Enable the keypad for non-char keys  */
+	keypad(stdscr, TRUE);      /*  Enable the keypad for non-char keys  */
+
 	start_color();
 	init_pair(1, COLOR_CYAN, COLOR_BLACK);
+
 	starty = (LINES - HEIGHT) / 2;	/* Calculating for a center placement */
 	startx = (COLS - WIDTH) / 2;	/* of the window		*/
 
+    // create windows
+    win_body = newwin(LINES, COLS, 0, 0);
+	win_form = derwin(win_body, HEIGHT, WIDTH, starty, startx);
+    box(win_form, 0, 0);
+
+    // Print greetings
+    mvwprintw(win_body, 1, 2, "Welcome in %s %s !", APP, VERSION);
+
+	wattron(win_body,COLOR_PAIR(1));
+	mvwprintw(win_body, 2, 2, "Press F1 to exit");
+	wattroff(win_body, COLOR_PAIR(1));
+
 	/* Initialize the fields */ 
-    field[0] = new_field(1, 32, starty+2, startx+15, 0, 0);
-    field[1] = new_field(1, 32, starty+4, startx+15, 0, 0);
-    field[2] = new_field(1, 25, starty+10, startx+15, 0, 0);
-	field[3] = NULL;
+    fields[0] = new_field(1, 32, 1, 2, 0, 0);
+    fields[1] = new_field(1, 32, 1, 15, 0, 0);
+    fields[2] = new_field(1, 32, 3, 2, 0, 0);
+    fields[3] = new_field(1, 32, 3, 15, 0, 0);
+    fields[4] = new_field(1, 32, 5, 2, 0, 0);
+    fields[5] = new_field(1, 32, 5, 15, 0, 0);
+    fields[6] = NULL;
 
-	/* Set field options */
-	set_field_back(field[0], A_UNDERLINE); 	/* Print a line for the option 	*/
-	set_field_back(field[1], A_UNDERLINE); 	/* Print a line for the option 	*/
-	field_opts_off(field[1], O_PUBLIC); 	/* This filed is like a password field*/
+	set_field_buffer(fields[0], 0, "Login : ");
+	set_field_buffer(fields[2], 0, "Password : ");
+	set_field_buffer(fields[4], 0, "Desktop : ");
 
-	
+	set_field_opts(fields[0], O_VISIBLE | O_PUBLIC | O_AUTOSKIP);
+	set_field_opts(fields[1], O_VISIBLE | O_PUBLIC | O_EDIT | O_ACTIVE);
+	set_field_opts(fields[2], O_VISIBLE | O_PUBLIC | O_AUTOSKIP);
+	set_field_opts(fields[3], O_VISIBLE | O_EDIT | O_ACTIVE);
+	set_field_opts(fields[4], O_VISIBLE | O_PUBLIC | O_AUTOSKIP);
+	set_field_opts(fields[5], O_VISIBLE | O_PUBLIC | O_EDIT | O_ACTIVE);
+
+	set_field_back(fields[1], A_UNDERLINE);
+	set_field_back(fields[3], A_UNDERLINE);
+	set_field_back(fields[5], A_UNDERLINE);
+
 	/* Create the form and post it */
-	loginform = new_form(field);
+	form = new_form(fields);
 
-	/* Create window */
-    mainwin = create_newwin(HEIGHT, WIDTH, starty, startx);
+	set_form_win(form, win_form);
+	set_form_sub(form, derwin(win_form, 8, 55, 1, 1));
 
-//  /!\ Je sais pas trop comment me servir de ça encore,
-//  on verra plus tard si on en a vraiment besoin /!\
-//
-//
-// 	/* Set main window and sub window */
-//     set_form_win(loginform, mainwin);
-//     set_form_sub(loginform, derwin(mainwin, rows, cols, 2, 2));
+	post_form(form);
 
-	post_form(loginform);
-
-	attron(COLOR_PAIR(1));
-	mvprintw(starty-2, startx, "Press F1 to exit");
-	attroff(COLOR_PAIR(1));
-
-    mvprintw(starty+20, startx+60, "Welcome in %s!", APP);
-	mvprintw(LINES-2, COLS-50, "Use UP, DOWN arrow keys to switch between fields");
     refresh();
+    wrefresh(win_body);
+    wrefresh(win_form);
 
-	mvwprintw(mainwin, 2, 2, "Login: ");
-	mvwprintw(mainwin, 4, 2, "Password: ");
-    wrefresh(mainwin);
+    move(starty+2, startx+16);
 
     /*  Loop until user presses 'F1'  */
-    while ( (ch = getch()) != KEY_F(1) ) {
-
-		switch(ch)
-			{	case KEY_DOWN:
-					/* Go to next field */
-					form_driver(loginform, REQ_NEXT_FIELD);
-					/* Go to the end of the present buffer */
-					/* Leaves nicely at the last character */
-					form_driver(loginform, REQ_END_LINE);
-					break;
-				case KEY_UP:
-					/* Go to previous field */
-					form_driver(loginform, REQ_PREV_FIELD);
-					form_driver(loginform, REQ_END_LINE);
-					break;
-				default:
-					/* If this is a normal character, it gets */
-					/* Printed				  */	
-					form_driver(loginform, ch);
-					break;
-			}
-	    
-        mvwprintw(mainwin, 2, 2, "Login: ");
-	    mvwprintw(mainwin, 4, 2, "Password: ");
-        wrefresh(mainwin);
-	    
+    while ((ch = getch()) != KEY_F(1)) {
+        driver(ch);
     }
     
-	/* Un post form and free the memory */
-	unpost_form(loginform);
-	free_form(loginform);
-	free_field(field[0]);
-	free_field(field[1]); 
-	free_field(field[2]); 
+	/* Unpost form and free the memory */
+	unpost_form(form);
+
+	free_form(form);
+
+	free_field(fields[0]);
+	free_field(fields[1]); 
+	free_field(fields[2]); 
+	free_field(fields[3]);
+	free_field(fields[4]); 
+	free_field(fields[5]); 
 
     /*  Clean up after ourselves  */
-    delwin(mainwin);
     endwin();
     refresh();
 
     return EXIT_SUCCESS;
 }
 
-WINDOW *create_newwin(int height, int width, int starty, int startx)
-{	WINDOW *local_win;
+static void driver(int ch)
+{
+    switch(ch)
+    {
+        case KEY_STAB:
+        case 9:
+        case KEY_DOWN:
+            /* Go to next field */
+            form_driver(form, REQ_SNEXT_FIELD);
+            form_driver(form, REQ_END_LINE);
+            break;
+        case KEY_UP:
+            /* Go to previous field */
+            form_driver(form, REQ_SPREV_FIELD);
+            form_driver(form, REQ_END_LINE);
+            break;
+        case KEY_LEFT:
+            /* Go to previous char */
+            form_driver(form, REQ_PREV_CHAR);
+            break;
+        case KEY_RIGHT:
+            /* Go to next char */
+            form_driver(form, REQ_NEXT_CHAR);
+            break;
+        // Delete the char before cursor
+        case KEY_BACKSPACE:
+        case 127:
+            form_driver(form, REQ_DEL_PREV);
+            break;
+        // Delete the char under the cursor
+        case KEY_DC:
+            form_driver(form, REQ_DEL_CHAR);
+            break;
+        default:
+            /* If this is a normal character, it gets */
+            /* Printed				  */	
+            form_driver(form, ch);
+            break;
+    }
 
-	local_win = newwin(height, width, starty, startx);
-    wborder(local_win, '|', '|', '-', '-', '+', '+', '+', '+'); 
-
-	wrefresh(local_win);		/* Show that box 		*/
-
-	return local_win;
+    wrefresh(win_form);
 }
-
-
-//  /!\ Pas sur qu'on ai besoin de ça non plus, vu qu'on 
-// remplace pas la fenetre, on garde toujours la meme /!\
-//
-//
-// void destroy_win(WINDOW *local_win)
-// {	
-// 	/* box(local_win, ' ', ' '); : This won't produce the desired
-// 	 * result of erasing the window. It will leave it's four corners 
-// 	 * and so an ugly remnant of window. 
-// 	 */
-// 	wborder(local_win, '|', '|', '-', '-', '+', '+', '+', '+');
-// 	/* The parameters taken are 
-// 	 * 1. win: the window on which to operate
-// 	 * 2. ls: character to be used for the left side of the window 
-// 	 * 3. rs: character to be used for the right side of the window 
-// 	 * 4. ts: character to be used for the top side of the window 
-// 	 * 5. bs: character to be used for the bottom side of the window 
-// 	 * 6. tl: character to be used for the top left corner of the window 
-// 	 * 7. tr: character to be used for the top right corner of the window 
-// 	 * 8. bl: character to be used for the bottom left corner of the window 
-// 	 * 9. br: character to be used for the bottom right corner of the window
-// 	 */
-// 	wrefresh(local_win);
-// 	delwin(local_win);
-// }
-// 
