@@ -1,8 +1,9 @@
-#include <stdlib.h>
 #include <ctype.h>
-#include <ncurses.h>
-#include <string.h>
 #include <form.h>
+#include <ncurses.h>
+#include <pwd.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define APP "STDM"
 #define VERSION "v0.0.1"
@@ -13,8 +14,10 @@
 static FORM *form;
 static FIELD *fields[N_FIELDS];
 static WINDOW *win_body, *win_form;
+char username[32], userpw[32], userdesk[32];
 
 static void driver(int ch);
+static char loaduser(void);
 
 int main(void)
 {
@@ -22,7 +25,7 @@ int main(void)
 
     // Initialize ncurses
     initscr();
-
+    
     noecho();                  // Turn off key echoing
     cbreak();
     keypad(stdscr, TRUE);      // Enable the keypad for non-char keys
@@ -81,14 +84,21 @@ int main(void)
     wrefresh(win_body);
     wrefresh(win_form);
 
-    move(starty+2, startx+16);
+    // Moving to the first field
+    form_driver(form, REQ_FIRST_FIELD);
+    form_driver(form, REQ_INS_MODE);
 
     // Loop until user presses 'F1'
     while ((ch = getch()) != KEY_F(1)) {
         driver(ch);
+
+        mvprintw(LINES-7, 1, "%s", username);
+        mvprintw(LINES-5, 1, "%s", userpw);
+        mvprintw(LINES-3, 1, "%s", userdesk);
     }
 
-    // Unpost form and free the memory
+    
+	// Unpost form and free the memory
     unpost_form(form);
 
     free_form(form);
@@ -114,14 +124,36 @@ static void driver(int ch)
         case KEY_STAB:
         case 9:
         case KEY_DOWN:
+
+            // Update field buffer
+            if (current_field(form) != NULL) { 
+                form_driver(form, REQ_VALIDATION);
+                
+                if (current_field(form) == fields[1]) {
+                    strcpy(username, field_buffer(fields[1], 0));
+                }
+                
+                if (current_field(form) == fields[3]) {
+                    strcpy(userpw, field_buffer(fields[3], 0));
+                } 
+                
+                if (current_field(form) == fields[5]) {
+                    strcpy(userdesk, field_buffer(fields[5], 0));
+                }
+
+            } else {
+                //Handle error
+            }
             // Go to next field
             form_driver(form, REQ_SNEXT_FIELD);
             form_driver(form, REQ_END_LINE);
+            form_driver(form, REQ_INS_MODE);
             break;
         case KEY_UP:
             // Go to previous field
             form_driver(form, REQ_SPREV_FIELD);
             form_driver(form, REQ_END_LINE);
+            form_driver(form, REQ_INS_MODE);
             break;
         case KEY_LEFT:
             // Go to previous char
