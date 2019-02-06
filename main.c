@@ -340,6 +340,7 @@ static void init_env(struct passwd *pw) {
     set_env("LOGNAME", pw->pw_name);
     set_env("PATH", "/usr/local/sbin:/usr/local/bin:/usr/bin");
     set_env("MAIL", _PATH_MAILDIR);
+    putenv("TERM=xterm");
 
     size_t xauthority_len = strlen(pw->pw_dir) + strlen("/.Xauthority") + 1;
     char *xauthority = malloc(xauthority_len);
