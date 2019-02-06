@@ -160,18 +160,15 @@ static void driver(char *username, char *userpw, char *userdesk, int ch)
                 form_driver(form, REQ_VALIDATION);
                 
                 if (current_field(form) == fields[1]) {
-                    strcpy(username, field_buffer(fields[1], 0));
-					username = trim_whitespaces(username);
+                    strcpy(username, trim_whitespaces(field_buffer(fields[1], 0)));
                 }
                 
                 if (current_field(form) == fields[3]) {
-                    strcpy(userpw, field_buffer(fields[3], 0));
-					userpw = trim_whitespaces(userpw);
+                    strcpy(userpw, trim_whitespaces(field_buffer(fields[3], 0)));
                 } 
                 
                 if (current_field(form) == fields[5]) {
-                    strcpy(userdesk, field_buffer(fields[5], 0));
-					userdesk = trim_whitespaces(userdesk);
+                    strcpy(userdesk, trim_whitespaces(field_buffer(fields[5], 0)));
                 }
 
             } else {
@@ -207,10 +204,6 @@ static void driver(char *username, char *userpw, char *userdesk, int ch)
             break;
 		case KEY_ENTER:
 		case '\n':
-            mvprintw(LINES-3, COLS-25, "%s", username);
-            mvprintw(LINES-2, COLS-25, "%s", userpw);
-            mvprintw(LINES-1, COLS-25, "%s", userdesk);
-            getch();
 			login_func(username, userpw, userdesk);
 			break;
         default:
